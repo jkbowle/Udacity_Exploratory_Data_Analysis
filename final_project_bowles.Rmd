@@ -1,0 +1,944 @@
+Length of games in Major League Baseball by Jason Bowles
+========================================================
+
+```{r Library_Load, message=FALSE, warning=FALSE, echo=FALSE}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk.
+# This prevents the code from displaying in the knitted HTML output.
+# You should set echo=FALSE for all code chunks in your file.
+
+library(ggplot2)
+library(GGally)
+library(reshape2)
+library(gridExtra)
+library(dplyr)
+```
+
+```{r Load_the_Data, echo=FALSE, cache=TRUE, warning=FALSE, message=FALSE}
+# Load the Data
+setwd('C:/Users/id19868/Documents/Udacity/EDA_Course_Materials/FinalProject')
+game_logs <- read.csv('game_log2.csv')
+# create a date object from the string date field
+game_logs <- transform(game_logs, date_of_game = as.Date(as.character(date), format("%Y%m%d")))
+# remove any game played that is longer or shorter than 9 innings
+game_logs <- subset(game_logs, innings_played == 9)
+# There may be a few observations where we don't have the "time_of_game", we'll toss those
+game_logs <- subset(game_logs, !is.na(time_of_game))
+# the next set of transforms are to add up the home and visitor statistics for totals
+game_logs <- transform(game_logs, total_runs = home_score + visit_score)
+game_logs <- transform(game_logs, total_SO = visit_SO + home_SO)
+game_logs <- transform(game_logs, total_BB = visit_BB + home_BB)
+game_logs <- transform(game_logs, total_AB = visit_AB + home_AB)
+game_logs <- transform(game_logs, total_hits = visit_hits + home_hits)
+game_logs <- transform(game_logs, total_GDP = visit_GDP + home_GDP)
+game_logs <- transform(game_logs, total_pitchers = visit_pitchers + home_pitchers)
+game_logs <- transform(game_logs, total_DP = visit_DP + home_DP)
+# pull out the year so we can group all games of one season together
+game_logs <- transform(game_logs, year = as.numeric(format(date_of_game, "%Y")))
+# add walks + hits together to see if that has an impact on our main feature
+game_logs <- transform(game_logs, WH = total_BB + total_hits)
+
+# create a factor for double headers and the game number
+game_logs$dbl_header <- with(game_logs, ifelse(game_number == 0, "N","Y"))
+game_logs$dbl_header <- factor(game_logs$dbl_header)
+game_logs$game_number <- factor(game_logs$game_number)
+# also create a factor for starting_hof, the only valid values are 0,1,2
+game_logs$starting_hof <- factor(game_logs$starting_hof)
+
+```
+
+# Introduction Of this Analysis
+#### The motivation for this came while listening to a recent baseball game on the radio earlier this year.
+
+The announcers were complaining about the number of balls being called by the umpire that night.  One of the announcers made the bold statement, "If you want to shorten the length of baseball games.. CALL MORE STRIKES".  I thought this was interesting and wondered if there is data that I can explore that can tell me exactly what is driving the length of games in major league baseball.  I found game log information and decided to see for myself.
+
+#### This is a custom dataset pulled from http://www.retrosheet.org/. 
+
+From their "game logs" section http://www.retrosheet.org/gamelogs/index.html, I pulled only games from 1950 to 2014 so as to keep my observations down to under 150K.   A summary of the variables found in this dataset can be found here: http://www.retrosheet.org/gamelogs/glfields.txt.  For this analysis we'll narrow it down to the following fields:
+
+##### date,starting_hof,era,game_number,day_of_week,visiting_team, visiting_league,visiting_game_number, home_team, home_league, home_game_number,innings_played,visit_score,home_score,game_outs,day_night_ind,attendance,time_of_game,visit_line_score,home_line_score,visit_AB, visit_hits,visit_2B,visit_3B,visit_HR,visit_RBI,visit_SACH,visit_SAC,visit_HBP,visit_BB,visit_IBB, visit_SO,visit_SB, visit_CS,visit_GDP,visit_CatherInterference,visit_LOB,visit_pitchers,visit_IndER, visit_TeamER, visit_WildPitch,visit_Balk,visit_Putout,visit_assists,visit_errors,visit_passed_ball,visit_DP, visit_TriplePlay,home_AB, home_hits,home_2B,home_3B,home_HR,home_RBI,home_SACH,home_SAC,home_HBP,home_BB,home_IBB, home_SO,home_SB, home_CS,home_GDP,home_CatherInterference,home_LOB,home_pitchers,home_IndER, home_TeamER, home_WildPitch,home_Balk,home_Putout,home_assists,home_errors,home_passed_ball,home_DP, home_TriplePlay
+
+#### Several variables are combined together to get "game" information.  
+
+(runs, SO, BB, AB, hits, GDP, DP, pitchers, WH (BB + Hits))
+
+#### The "era" (post war, westward expansion, deadball 2, free agency/arbitration, steroids, current) 
+
+The era was added to each game as well.  This information was added via the following post found on the huffington post. http://www.huffingtonpost.com/quora/what-are-the-major-eras-o_b_3547814.html
+
+#### Hall of Fame pitchers
+
+Lastly all pitchers that are inducted into the Baseball Hall of Fame are pulled from wikipedia (including the most recent 3 added Randy Johnson, Pedro Martinez, and John Smoltz).  Using this information I added the number of HOF pitchers that started the game (0, 1, or 2).  My initial feeling that the better quality pitching will have an affect on the "time of game", we'll see if the data proves me right!
+
+# Univariate Plots Section  (Basically we're trying to understand the individual variables)
+
+First looking at the distribution of the time_of_game variable
+```{r Univariate_Plots, echo=FALSE, cache=TRUE}
+# first we'll take a look at the time_of Game and see what the distribution is..
+ggplot(aes(x = time_of_game), data = game_logs) +
+  geom_histogram(binwidth = 5)
+
+```
+
+The histogram shows that the length of game ranges from just under 100 minutes to as high 260(ish) minutes.  (Remember this is only 9 inning games, extra inning games can go over 360 minutes!!!)
+
+Now let's summrize the the variable "time_of_game"
+```{r Univariate_Plots1, echo=FALSE, cache=TRUE}
+# use summary here
+summary(game_logs$time_of_game)
+
+```
+
+The summary shows that are initial look at the histogram was pretty darn close
+
+Now let's look to see how many observations include a hall of fame pitcher starting a game.
+
+```{r Univariate_Plots2, echo=FALSE, cashe=TRUE}
+# run a bar chart and summary for visual and numeric views
+ggplot(aes(x = starting_hof), data = game_logs) +
+  geom_bar()
+summary(game_logs$starting_hof)
+
+```
+
+With over 11,000 games started by at least 1 Hall of Fame pitcher, I think we have enough to see if they make an impact on the game length.
+
+We'll also check to make sure that we have adequate coverage of all the era's.
+```{r Univariate_Plots3, echo=FALSE, cache=TRUE}
+# run a bar chart and summary for visual and numeric views
+ggplot(aes(x = era), data = game_logs) +
+  geom_bar()
+summary(game_logs$era)
+
+```
+Would be nice to have more "post war" era games.. but I think we'll be fine with just over 3000 games in this era.  Besides by retrosheet's own admission the older games become less reliable on the information captured and thus have a higher chance that some variables will be missing or null.
+
+Since we think Walks + Hits (WH) will have an impact, let's take a look at that variable, along with double header and total_runs
+```{r Univariate_Plots4, echo=FALSE, cache=TRUE}
+# run the histogram and summary for visual and numeric views
+ggplot(aes(x = WH), data = game_logs) +
+  geom_histogram(binwidth = 1)
+
+summary(game_logs$WH)
+
+```
+
+Looking at the histogram and the summary we can see that Walks + Hits is fairly widely distributed, with a range of 2 - 58.  I did look up the game that only had 2 walks + hits and it was a September 9th game in 1965 game between the Chicago Cubs and the Los Angelos Dodgers.  Sandy Koufax beat Bob Hendley and the Chicago Cubs one to nothing.  Koufax threw a perfect game (no walks or hits) while Hendley threw a 1 hitter and gave up 1 walk.  Interesting thing is that the lone run that was scored without the benefit of a hit.  Lou Johnson was walked in the 5th, then a sacrifice bunt put him on 2nd.  Johnson then stole 3rd and scored on an errant throw by the catcher.  Wow!
+
+Now let's compare on top of each other the histogram of Walks + Hits and the time of game.  Maybe we'll see something interesting here.
+
+```{r Univariate_Plots4.1, echo=FALSE, cache=TRUE}
+# create the two plots and save them to a variable
+# we'll then use grid arrange with a col=1 so we can see them on top of each other
+whplot <- ggplot(aes(x = WH), data = game_logs) +
+  geom_histogram(binwidth = 1)
+
+gtplot <- ggplot(aes(x = time_of_game), data = game_logs) +
+  geom_histogram(binwidth = 5)
+
+
+grid.arrange(gtplot, whplot, ncol = 1)
+```
+
+The distributions seem to be fairly consistent, which we'll investigate further in the bivariate and multivariate secions of the review.
+
+Since we have information on Double Headers, I'm curious to see how many we have to review
+
+```{r Univariate_Plots4.2, echo=FALSE, cache=TRUE}
+# run a bar chart and summary for visual and numeric views
+ggplot(aes(x = dbl_header), data = game_logs) + 
+  geom_bar()
+summary(game_logs$dbl_header)
+```
+
+Better than I had hoped, we have over 11,000 games that were part of a double header!
+
+For our last single variable plot, let's see if the total_runs scored has the same distribution we saw with Walks+Hits.  The theory being that Walk+Hits drives more run scoring
+
+```{r Univariate_Plots4.3, echo=FALSE, cache=TRUE}
+# run the histogram and summary for visual and numeric views
+ggplot(aes(x = total_runs), data = game_logs) +
+  geom_histogram(binwidth = 1)
+
+summary(game_logs$dbl_header)
+
+```
+The distribution of total runs has a longer tail than Walks + Hits and some definite spikes!  Which may indicate that the Walks+Hits and total runs are not as highly correlated as I would have thought
+
+This last part is to see what kind of distribution we have.  The histograms suggest that they may be normally distributed, but let's see if it is a statistically valid assumption
+```{r Univariate_Plots5, echo=FALSE}
+#shapiro.test has a limitation of 5000 observations
+ks.test(x=game_logs$time_of_game,y='pnorm',alternative='two.sided')
+ks.test(x=game_logs$WH, y='pnorm',alternative='two.sided')
+```
+For both outputs the Pvalue is low meaning that it is statistically different than a normal distribution.  In both cases there may be some outliers that cause this test to fail.
+
+# Univariate Analysis
+
+### Structure of the MLB game logs data
+
+Each observation in this dataset is one complete game played in major league baseball from 1950 to 2014.  Each game has information on the date it was played, the teams that participated and the major statistics for each team (home & visitor).  Example statistices (Runs Scored, Hits, Walks [BB], Strikeouts [SO], etc..)
+
+Other information includes day vs. night game, number of hall of fame pitchers that started the game, the day of the week and the era in which the game was played.. (i.e. deadball2, steroids, etc..)
+
+### The main feature is that of the "time_of_game"
+
+This feature describes in minutes how long the baseball game took to complete.  Recent rule changes went into effect in 2015 that were designed to shorten the overall length of a baseball game, however since the 2015 season is still in progress at the time of this writing, we'll have to wait until the conclusion of this season to see those changes result in a downward trend for the time of game.  Until then, it will be interesting to see what variables in our dataset show an impact on the length of the game.  Is there some other aspects of the game that we can focus on that will help shorten its overall length?
+
+### A high level discussion on other features that may have some interesting effects on our main feature.
+
+Initially looking it appears from logic and from the data that the number of hits and walks should have a positive relationship with the length of a major league baseball game.  (those 2 things usually lead to more runs scored and thus longer game).
+
+Other things of interest is whether or not a Hall of Fame pitcher starting a game will have a negative relationship with the length of a game.  Also of interest is if the league rules and quality of play have an indication on the length of game.  The NL and AL leagues of major league baseball have slightly different rules and different levels of parity in each season of baseball.
+
+From the data we will also be able to conclude if day vs. night games are different or if a game that is part of a double header would be shorter than a regularly scheduled game.
+
+### Some new variables created from the dataset.
+
+Created a factor to indicate if a particular observation was part of a double header.  I also combined the following variables to give a "total" as this may be more interesting than the individual team totals, they are (hits, runs, BB, SO, pitchers used, Double Plays and At Bats).  I also created a seperate variable for the year of the game.. the year is more easily used to describe a season total for which an observation belongs.
+
+Major rule changes and teams added are done so before a season begins and doing a yearly observation may give some indication of how those changes have effected our main variable
+
+
+### At first glance there weren't any "weird" observations.  But some of the variables had to be "transformed" and I did trim the dataset
+
+I did change the variables Starting_Hof and game_number to be factors, so that I could correctly see a summary of these in the R console.
+
+Since are main variable is time of game, it is important to compare apples to apples.. meaning you can't compare an extra inning game to a regular 9 inning game or a rain shortened game.
+
+The subset of data removes any game that was either higher or lower than 9 innings
+
+
+
+# Bivariate Plots Section
+
+What ways can we further investigate the time_of_game variable?  We'll start with a histogram adding era as the fill.
+
+```{r Bivariate_Plots, echo=FALSE, cache=TRUE}
+# create a histogram to show the time of game with the era filled
+# just because I think it'll be cool looking
+ggplot(aes(x = time_of_game, fill = era),data = game_logs) +
+  scale_fill_brewer(type = 'qual') +
+  geom_histogram(binwidth = 1) +
+  ggtitle('Distribution of Game Time across era')
+```
+
+You can see in this plot how each era moves slightly to the right as it nears the current timeframe.  I like this plot but Let's facet by era instead and see how that looks.
+
+```{r Bivariate_Plots.0, echo=FALSE, cache=TRUE}
+#  add the facet wrap by era
+ggplot(aes(x = time_of_game),data = game_logs) +
+        facet_wrap( ~ era) +
+      geom_histogram() +
+      ggtitle('Histograms for each era')
+```
+
+This one puts steroids right under the deadball 2 era, showing how different those time periods were.
+
+Over time the length of games has changed in what ways?
+
+```{r Bivariate_Plots1, echo=FALSE, cache=TRUE}
+
+#mapping out the time_of_game over time, we'll add a smoother to see how predictable it can be
+ggplot(aes(x = date_of_game, y = time_of_game), data = game_logs) + 
+  geom_point(alpha = 1/50) +
+  geom_smooth() +
+  ggtitle('Length of Games over time')
+```
+
+Here I can see that the game times have steadily increased over time, but adding the smooth shows that it isn't completely linear.  There is still a lot of noise here, so we'll have to look at this in a different way later
+
+Next up.. scatter plot for runs vs. game time
+
+```{r Bivariate_Plots1.1, echo=FALSE}
+# same as before but now looking at the relationship between total runs and time_of_game
+ggplot(aes(x = time_of_game, y = total_runs), data = game_logs) +
+  geom_jitter(alpha = 1/20)+
+  ggtitle('Relationship of total runs to Game Time')
+```
+
+So here we see that total runs scored means a longer game.. but that isn't a revolutionary finding, I'm thinking there is more to it than this.
+
+Now we'll take a look at Strikeouts
+
+```{r Bivariate_Plots1.2, echo=FALSE}
+# This time it is strikeouts
+ggplot(aes(x = time_of_game, y = total_SO), data = game_logs) +
+  geom_jitter(alpha = 1/20)+
+  ggtitle('Relationship of total strike outs to Game Time')
+```
+
+So here we don't see much of a relationship, but I would have thought more strikeouts = less games and see a slightly negative relationship if anything.  But I guess a game is more efficient if the picher pitches to contact because a strikeout requires 3 pitches, but a groundball out can be done with 1 pitch.
+
+
+Let's see how walks have an effect on the time of a game.
+
+```{r Bivariate_Plots1.3, echo=FALSE}
+# Don't forget walks!
+ggplot(aes(x = time_of_game, y = total_BB), data = game_logs) +
+  geom_jitter(alpha = 1/20)+
+  ggtitle('Relationship of total walks to Game Time')
+```
+
+This plot looks similar to the total_runs scatter plot.  A relationship is there, but again not too hard to make this conclusion.
+
+
+What about hits on the length of a game?
+
+```{r Bivariate_Plots1.4, echo=FALSE}
+# And no one would leave out hits right!
+ggplot(aes(x = time_of_game, y = total_hits), data = game_logs) +
+  geom_jitter(alpha = 1/20)+
+  ggtitle('Relationship of total hits to Game Time')
+```
+
+In the previous charts we saw that low numbers of strikeouts, walks and runs still had a lot of variation.  In this graph the variation is cleaned up a bit.  This may lead to something.
+
+Last we'll examine walks + Hits
+
+```{r Bivariate_Plots1.5, echo=FALSE}
+# What if we compared the combination of Walks and Hits (WH) and compared that to time_of_game??
+ggplot(aes(x = time_of_game, y = WH), data = game_logs) +
+  geom_jitter(alpha = 1/20)+
+  ggtitle('Relationship of Walks + Hits to Game Time')
+
+```
+
+Walks + Hits is even more tight than the others in relationship to time_of_game.  We'll see if we can build on this later.
+
+Now that we've exhausted all of the retro information on game time.  Let's see if the variable I added for starting HOF pitchers has an impact.
+
+```{r Bivariate_Plots2, echo=FALSE}
+# we'll use a boxplot here to see how they stack up against each other
+ggplot(aes(x = starting_hof, y = time_of_game), data = game_logs) +
+  geom_boxplot()+
+  ggtitle('Would a Hall of Fame Pitcher starting in the game affect the time?')
+
+```
+
+So having a Hall of Famer start the game means you are in for a shorter game for sure.  And if you have the opportunity to watch two hall of famers go at it.. expect a short visit to the park that day!  Very small amount of outliers too!
+
+I added the era too, how does game time look across era?
+
+```{r Bivariate_Plots3, echo=FALSE}
+#  boxplot this and turn the era names on their side to make it more readable
+ggplot(aes(x = era, y = time_of_game), data = game_logs) +
+  geom_boxplot()+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle('What is the average game time by era?')
+
+```
+
+I like the boxplot here because each box on this chart is like a histogram on it's side and it is easer to see which era is shifted the furthest left (post war and deadball 2).  The steroids era seems to be the hightest, but the current timeframe is very close.  
+
+
+I would guess that double headers are shorter in length then a regular game, but let's see what the data says.  First we'll look at just a double header.. than the game number
+
+```{r Bivariate_Plots4, echo=FALSE}
+# plotting the doulble header
+ggplot(aes(x = dbl_header, y = time_of_game), data = game_logs) +
+  geom_boxplot() +
+  ggtitle('Are double header games shorter than Regular games?')
+
+## if there is a difference we want to see if game 1 is different than game 2
+ggplot(aes(x = game_number, y = time_of_game), data = game_logs) +
+  geom_boxplot() +
+  ggtitle('Game Number vs Game Time\n(1 & 2 signify 1st & 2nd games of double header)')
+```
+
+Just what I thought, double headers are shorter.. but the crazy thing is that game 1 of the double header is consistently shorter than game 2!  More on this later.
+
+Is there a difference when it comes to the National (NL) or American (AL) leagues?
+
+```{r Bivariate_Plots5, echo=FALSE}
+#  two outcomes here to examine.
+ggplot(aes(x = home_league, y = time_of_game), data = game_logs) +
+  geom_boxplot() +
+  ggtitle('Which league has longer games NL or AL??')
+
+```
+
+Both are close.. but the AL is slightly longer at playing baseball than the NL.
+
+
+Does day of the week matter (Perhaps Sunday Night baseball games are longer)?
+
+```{r Bivariate_Plots6, echo=FALSE}
+ggplot(aes(x = day_of_week, y = time_of_game), data = game_logs) +
+  geom_boxplot()+
+  ggtitle('Does the day of the week matter?')
+
+```
+
+Nothing really stands out here!  Uncanny really how even it is across days.  Sunday appears to be slightly shorter (but not by much)
+
+To help visualize this better, we'll summarize the data by year so that we can see the median game time over the years.
+
+```{r Bivariate_Plots7, echo=FALSE, cache=TRUE}
+# we're just going to summarize this data by year
+table_year <- group_by(game_logs, year)
+# create our new dataframe from the table
+gt_year <- summarize(table_year,
+                          mean_gt = mean(time_of_game),
+                          median_gt = median(as.numeric(time_of_game)),
+                          min_gt = min(time_of_game),
+                          max_gt = max(time_of_game),
+                          n = n())
+# now let's plot it
+ggplot(aes(x = year, y = median_gt), data = gt_year) +
+  geom_line() +
+  ggtitle('Looking at the median game time across years')
+```
+
+When looking at it this way, we can see the median game time start reallying jumping in the early 70's.  If our dataset didn't go back to the 60's, I would think the relationship completely linear.
+
+
+For fun let's also see what attendance has done over the years
+
+```{r Bivariate_Plots8, echo=FALSE}
+# we don't have attendance for every game, so if we're going to summarize on attendance we'll 
+# have to leave those games out
+table_year <- group_by(subset(game_logs, !is.na(attendance)),year)
+# create our new dataframe from our attendance table
+att_year <- summarize(table_year,
+                          mean_att = mean(attendance),
+                          median_att = median(as.numeric(attendance)),
+                          min_att = min(attendance),
+                          max_att = max(attendance),
+                          n = n())
+
+
+# plot it
+ggplot(aes(x = year, y = mean_att), data = att_year) +
+  geom_line() +
+  ggtitle('How has attendance faired across years?')
+
+```
+
+Attendance has increased almost every year, with some noticable dips early 1980's and mid 90's
+
+
+
+I think this is as good time as any to think about how a scatterplot matrix may help give some interesting insight!
+
+We'll do two scatterplot matrices so that it is more readable.. we'll keep time_of_game and year in each matrix though
+
+```{r Bivariate_Plots9, echo=FALSE}
+## let's create a function that creates a sample, we'll use this for ggpairs
+##  and any graph that has over_plotting issues
+get_sample <- function(x, sample_size=1000){
+  # get the sample
+  # Following this example: game_logs[sample.int(nrow(game_logs),10000),]
+  result <- x[sample.int(nrow(x),sample_size),]
+  return(result)
+  
+}
+```
+
+```{r Bivariate_Plots9.0, echo=FALSE, cache=TRUE}
+# seperated this section to cache
+# first set of columns to include
+subset_vars1 = c("time_of_game","year","starting_hof","era","total_runs","total_SO")
+# second set of columns to include
+subset_vars2 = c("time_of_game","year","dbl_header","WH", "total_pitchers" )
+
+subset_gl <- game_logs[subset_vars1]
+subset_gl2 <- game_logs[subset_vars2]
+
+library(GGally)
+theme_set(theme_minimal(20))
+
+set.seed(1492)
+# first one
+ggpairs(get_sample(subset_gl),axisLabels = "internal")
+```
+
+Was a bit surprised that Strikeouts had any kind of positive correlation to time_of_game,
+We're also seeing that runs have an impact on time of game here.  I think the standard boxplots for time_of_game and starting_hof are not the best here.  We can investigate the seperately
+
+Now let's run the 2nd set
+
+```{r Bivariate_Plots9.1, echo=FALSE, cache=TRUE}
+# second one
+ggpairs(get_sample(subset_gl2),axisLabels = "internal")
+
+```
+
+Here is our first glimpse that Walks+Hits has a high correlation with time_of_game, but hasn't changed much over the years.  Double Headers are definetly shorter than regular games here as well.  Total Pitchers used has the highest correlation with time of game.  Are walks+hits driving this though?
+
+
+Let's compare walks, Strikeotus and WH across eras using a boxplot
+
+```{r Bivariate_Plots10, echo=FALSE}
+# for this we want to use a bar chart and graph the median
+#  we'll need to change the labels to be at 90 degrees so that they are readable
+ggplot(aes(x = era), data = game_logs) +
+  geom_bar(aes(y = total_BB), stat='summary', fun.y=median) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ggtitle('Any era have more walks than any other?')
+```
+
+From the bar graph we can see that the deadball era had a really low amount of walks.  So maybe it wasn't really a deadball era, but rather a pitching dominance era
+
+
+```{r Bivariate_Plots10.1, echo=FALSE}
+# for this we want to use a bar chart and graph the median
+#  we'll need to change the labels to be at 90 degrees so that they are readable
+ggplot(aes(x = era, y = total_SO), data = game_logs) +
+  geom_bar(aes(y = total_SO), stat='summary', fun.y=median) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ggtitle('What about Strikeouts across era')
+```
+
+We see that DeadBall 2 is near the top for strikeouts but not as the current era.  The post-war era is lagging behind the others with the lowest median strikeouts per game
+
+```{r Bivariate_Plots10.2, echo=FALSE}  
+# for this we want to use a bar chart and graph the median
+#  we'll need to change the labels to be at 90 degrees so that they are readable
+ggplot(aes(x = era), data = game_logs) +
+  geom_bar(aes(y = WH),stat='summary', fun.y=median) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ggtitle('Are walks + hits difference across era?')
+
+```
+
+Strange that walks + hits doesn't really have a dramatic difference through the years and eras. 
+
+
+# Bivariate Analysis
+
+### Most of the features that I expected to have an impact on "time_of_game" showed the relationship, but some did not.
+
+First thing I investigated was to see if the time of game has truly increased over time.  This is a common observation from those who write regularly about the game of baseball.  The line graph did show this trend, however it isn't completely linear.  There are dips in game time throughout time.
+
+My thought is that if an umpire is calling more strikes, then the batter would be forced to swing at more pitches that are not in their "hot" zones, resulting in less overall hits.  In this same reasoning than more strikes being called means less overall walks and more overrall strikes.  Thus I would expect that the higher number of hits and walks the longer the game will take.  I also expect that the more strikes being called would mean more strikeouts and thus have a negative relationship with the game time.
+
+My initial conclusion about walks and hits seems to be holding true in the generated scatterplots (even more so when they were combined), however it appears that stikeouts have no relationship on the time of game.
+
+Other things of note is that the "era" of baseball is a good reflection of the time of game.. but as noted before era is closely related to year and therefore it wasn't a huge surprise that the eras have a similar impact on game time.
+
+Looking across categorical features couple of interesting things was that both Number of HOF starting pitchers, double header games and the home league showed that each represent a different mean for time of game.  
+
+### Other things that were interesting
+
+I know that a lot has been written about attendance at major league baseball.  I created a line graph to examine how attendance has ebbed and flowed throughout the years.  There were expected drops (right after the 1994 baseball players strike and after the steriods hearings at congress).  Looks like there was also a dip in the early eighties.  I did a quick search and found there was also a strike in 1981 which resulted in 713 games being cancelled.  Although unlike 1994 the season did resume and a World Series was still played.
+
+I also was interested in some general stats across the different era's.  For instance the number of walks is fairly consistent across eras, except the post-war era.  Strikeouts did show some variation with lower averages for post-war, deadball2 and westward expansion.  I was really surprised to see strikeouts to be lower for deadball2, because that was the time period of Bob Gibson's 1.12 ERA (Earned Run Average) and Denny McLain winning 31 games (both in 1968) and resulted in Major League Baseball lowering the pitcher's mound and effectively ending the deadball2 era.
+
+My thought was that strikeouts would be up, not down.  So looking at walks + hits may show more of the story here.  In fact when I look at this graph the deadball2 era has the lowest of any era, which means the deadball2 era was not known for strikeouts but more of pitching to contact and letting the defense do the work.
+
+### What is driving the first game of a double header to be shorter?
+
+I completely understand the results of the effect of a HOF pitcher starting a game (better pitcher = less hits and less walks, and therefore a shorter game).  However I wasn't sure the same could be held true for a double header.  But the data clearly shows that games that are a part of a double header are shorter than regular games.  I can understand that the 2nd game may be shorter because the position players are all tired thus giving an advantage to the well rested game 2 pitcher, but I'm not sure why game 1 is also shorter (in fact slightly shorter than game 2).  Maybe the umpires are expanding their strike zones in anticipation of a long day??  We'll look to see if we can uncover more information about why double headers are shorter.
+
+
+# Multivariate Plots Section
+
+What can we see if we're looking at time_of_game with color added to show the era
+
+```{r Multivariate_Plots, echo=FALSE, fig.width = 8, fig.height = 6}
+
+# we'll use the scatter plot and add jitter and transparency to see if something of interest is 
+# displayed
+ggplot(aes(x = year, y = time_of_game),
+       data = subset(game_logs, !is.na(era))) + 
+  geom_point(alpha = 0.2, size = 1, position = 'jitter',aes(color = era)) +
+  scale_color_brewer(palette="Set1",
+    guide = guide_legend(title = 'era', reverse = T,
+    override.aes = list(alpha = 1, size = 2))) +
+  ggtitle('Game Time across \nyears and era')
+```
+
+From this graph we can see that most of the eras are consistent in their trend (upward or downward) on length of game.
+
+What happens when we look at Walks + Hits (WH) over the years.. do they stay the same?
+
+```{r Multivariate_Plots1, echo=FALSE, fig.width = 8, fig.height = 6}
+
+# same as before but this time we want the short games to show up as a light blue
+# and the longer games to be a dark blue
+ggplot(aes(x = year, y = WH,color = time_of_game), data = game_logs) +
+  geom_jitter(alpha = .5) +
+  scale_colour_gradient(low = "#E6EBF5", high = "#001F5C",
+  space = "Lab", na.value = "grey50", guide = "colourbar") +
+  ggtitle('Walks + Hits across years')
+```
+
+Walks + Hits don't seem to vary much, but does appear to be slightly higher in the steroids era.  Added color for the time of game and we can see how that is getting darker as the years progress.
+
+When looking at Walks + Hits (WH) can we see a change in era?
+
+
+```{r Multivariate_Plots2, echo=FALSE, fig.width = 8, fig.height = 6}
+# We want bold colors for era, that way we can see any differences jump out when considering 
+# the era
+# use a sample to fix the overplotting
+ggplot(aes(x = WH, y = time_of_game),
+       data = subset(get_sample(game_logs, sample_size = 10000), !is.na(era))) + 
+  geom_point(alpha = 0.5, size = 2, position = 'jitter',aes(color = era)) +
+  scale_color_brewer(palette="Set1",
+    guide = guide_legend(title = 'era',
+    override.aes = list(alpha = 1, size = 2))) +
+  ggtitle('Walks + Hits on Game Time \nwith era highlighted')
+
+```
+
+From this graph I saw that relationship between walks and hits but adding in era gave us an indication of how the length of games have changed with the eras.  Towards the top is the steriods and current area, with the bottom beting free agency, westward expansion, deadball 2 and post war.
+
+To compare NL vs. AL, we'll create a table and then display that over year so that we can see differences for time of game and total runs scored by league over the years
+
+```{r Multivariate_Plots3, echo=FALSE, fig.width = 8, fig.height = 6}
+# group everything by year and home_league
+table_gt_alnl <- group_by(game_logs, year, home_league)
+# summarize time_of_game and total_runs
+gt_nl_al <- summarize(table_gt_alnl,
+                          mean_gt = mean(time_of_game),
+                          median_gt = median(as.numeric(time_of_game)),
+                          min_gt = min(time_of_game),
+                          max_gt = max(time_of_game),
+                          mean_runs = mean(total_runs),
+                          n = n())
+
+# plotting median game time with color for league
+ggplot(data = gt_nl_al, aes(x = year, y = median_gt)) +
+       geom_line(aes(color = home_league)) +
+       ggtitle('League differences for median game time')
+```
+
+Over time again we see that game length has increased, but adding the dimension of home league, shows us that the American league games were consistently longer from the early 70s to about 2003.
+
+Could this have been caused by more runs being scored over that time.. let's see.
+
+```{r Multivariate_Plots3.1, echo=FALSE, fig.width = 8, fig.height = 6}
+# same as before but we'll plot mean_runs
+ggplot(data = gt_nl_al, aes(x=year, y = mean_runs)) +
+  geom_line(aes(color = home_league)) +
+  ggtitle('League difference for runs scored')
+```
+
+Yes, the AL scores more runs.. but they continue to do that in recent years, so the run scoring can't be driving the change in length of games between the AL and NL.
+
+Looks like the AL is consistently higher for game_time, let's create a ratio to see how that has changed over the years
+
+```{r Multivariate_Plots4, echo=FALSE, fig.width = 8, fig.height = 6}
+# flatten the NL and AL numbers for the same years so that it shows on the same graph
+ra_nl_al.wide <- dcast(gt_nl_al,
+                          year ~ home_league, 
+                          value.var = 'median_gt')
+# does it look right?
+head(ra_nl_al.wide)
+
+# now let's plot the ratio as a single line.. no difference will mean close to 1
+ggplot(data = ra_nl_al.wide, aes(x = year, y = AL/NL)) +
+       geom_line() +
+       scale_x_continuous(breaks = seq(1950, 2014,5)) +
+       scale_y_continuous(breaks = seq(.96, 1.10,.04)) +
+       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+       ggtitle('Ratio of game time difference \nbetween AL and NL')
+```
+
+This graph does a good job of clarifying the time period of the game length differences between the AL and NL (If I had more time, I'd figure out how to make the 1 pop out as the guiding line)
+
+Look at a summary by year of day vs. night games
+
+```{r Multivariate_Plots5, echo=FALSE, fig.width = 8, fig.height = 6}
+# couldn't figure out how to not include day_night_ind that wasn't equal to 'D' or 'N'
+# oh well.. progress over perfection!
+
+table_gt_dn <- group_by(subset(game_logs, day_night_ind == 'D' || day_night_ind == 'N'), 
+                        year, day_night_ind)
+# create the new dataframe from the table
+gt_dn <- summarize(table_gt_dn,
+                          mean_gt = mean(time_of_game),
+                          median_gt = median(as.numeric(time_of_game)),
+                          min_gt = min(time_of_game),
+                          max_gt = max(time_of_game),
+                          n = n())
+
+# plot the difference between day and night game median game time
+ggplot(data = gt_dn, aes(x = year, y = median_gt)) +
+       geom_line(aes(color = day_night_ind)) +
+       ggtitle('Day vs. Night differences \nfor median game time')
+
+```
+
+Absolutely nothing of interest here.  Pretty consistent with short periods where Night games were shorter than day games and vice versa.
+
+Back to Time_of_game to further explore relationships
+
+Has Walks + Hits (WH) changed over time?  Could we use that to show why game times have increased over time?
+
+```{r Multivariate_Plots7, echo=FALSE, fig.width = 8, fig.height = 6}
+# again trying to find a way to make a difference pop
+ggplot(aes(x = WH, y = time_of_game),
+       data = get_sample(game_logs,sample_size = 20000)) + 
+       facet_wrap( ~ era) +
+  geom_point(alpha = 0.2, size = 3, position = 'jitter',aes(color = home_league)) +
+  scale_color_brewer(palette="Set1",
+    guide = guide_legend(title = 'League', reverse = T,
+    override.aes = list(alpha = 1, size = 2))) +
+  ggtitle('Walks and Hits across era within Leagues')
+
+```
+
+Here we see that the relationship of Walks+Hits is consistent across eras, and the free agency/arbitration era shows that most of the longer games were in the AL.  The other eras were fairly consistent with game time across leagues.
+
+Going back to double headers.. can we find something in the data to describe the relationship of the 1st game to the game time?
+
+```{r Multivariate_Plots8, echo=FALSE, fig.width = 8, fig.height = 6}
+#  let's look at walks and hits and taking into account the double headers
+ggplot(aes(x = WH, y = time_of_game),
+       data = get_sample(game_logs, sample_size = 20000)) + 
+  geom_point(alpha = 0.2, size = 1, position = 'jitter',aes(color = dbl_header)) +
+  scale_color_brewer(palette="Set1",
+    guide = guide_legend(title = 'Double Header',
+    override.aes = list(alpha = 1, size = 2))) +
+  ggtitle('Walks and Hits across era \ncomparing double headers')
+
+```
+
+Even with sampling (to preven over plotting), we are not seeing a difference for walks+hits across double headers and regular games
+
+# Multivariate Analysis
+
+### Is it Walks + Hits that is really driving game time?
+
+As I continued to analyze the Walks + Hits (WH) impact on the time of game I wasn't able to make the connection between WH going up over the years.  It is clear that WH has a positive relationship with game time.. but that hasn't really changed dramatically over the years.  It was at it's lowest in the deadball2 era, but that wasn't the shortest median game time.
+
+Looking for more answers I considered the differences across leagues.  I found that the American League games were consistently taking longer starting in the early 70's.  This isn't a surprise as this is about the time that the American League instituted the Designated Hitter rule, essentially replacing a sub .200 average hitter usually with a hitter who batted in the lower .300 with power.  This seems to have had an impact on runs scored and time of game.  This affect has lessened in the current era perhaps because of more parity and better pitching/defense in recent years (i.e. Defensive Shifts)
+
+Another consideration was if there was any difference between game time of day and night games.  My initial assumption was that day games would be shorter because of less television commercial breaks, however there doesn't appear to be a strong difference in any years or eras.
+
+I continued to look at time of game across era's and NL vs. AL, still nothing stood out as even WH seemed to have the same relationship with time of game across eras.
+
+Feeling a bit deflated, I decided to dig into the double header issue more.  Why would the 1st game of a double header be shorter than the 2nd game and a regular season game?  
+
+```{r Multivariate_Plots9, echo=FALSE, fig.width = 8, fig.height = 6}
+# let's summarize on game number
+gn_table <- group_by(game_logs, game_number)
+# create the dataframe from the table
+gn_summ <- summarize(gn_table,
+                          median_so = median(as.numeric(total_SO)),
+                          median_wh = median(as.numeric(WH)),
+                          median_gt = median(as.numeric(time_of_game)),
+                          mean_pitchers = mean(total_pitchers),
+                          n = n())
+# let's see what we have
+gn_summ
+```
+
+Interesting!  Walks+Hits is exactly the same across game number, but there is still a difference in median game time, But really jumps out from the summary is the mean number of pitchers used.
+
+Let's take this a bit further now.
+
+```{r Multivariate_Plots9.1, echo=FALSE, fig.width = 8, fig.height = 6}
+# summarizing by year and game_number now
+gn_yr_table <- group_by(game_logs, year, game_number)
+# create the new dataframe
+gn_yr_summ <- summarize(gn_yr_table,
+                          median_so = median(as.numeric(total_SO)),
+                          median_wh = median(as.numeric(WH)),
+                          median_gt = median(as.numeric(time_of_game)),
+                          mean_pitchers = mean(total_pitchers),
+                          n = n())
+
+# now plot the mean pitchers used over the years
+ggplot(aes(x = year, y = mean_pitchers), data = gn_yr_summ) +
+  geom_line(aes(color = game_number), size = 2) +
+  scale_x_continuous(breaks = seq(1950, 2014,5)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle('The average pitchers \nused through the years')
+
+```
+
+Here we can see over the years the number pitchers used has steadily increased, and game 1 of the double header is always lower!
+
+We'll look at this a couple different ways to make sure.
+
+```{r Multivariate_Plots9.2, echo=FALSE, fig.width = 8, fig.height = 6}
+# let's just make sure of what we think we are seeing here.
+ggplot(aes(x = total_pitchers),data = game_logs) +
+        facet_wrap( ~ game_number) +
+      geom_histogram(binwidth = 1)
+```
+
+This seems to confirm that the distribution of double header games are shifted to the left of regular season games
+
+Now let's generate the scatter plot
+
+```{r Multivariate_Plots9.3,echo=FALSE, fig.width = 8, fig.height = 6}
+
+# now do the scatter plot of pitchers used to time_of_game
+ggplot(aes(x = total_pitchers, y = time_of_game), data = game_logs) +
+  geom_jitter()
+
+```
+
+Yes, I high correlation between total pitchers used and time of game.
+
+To get here I created a table to look at some of the different values for double headers.  I was surprised to find that the median WH stat was identical across the 3 game types!  How could this be when WH is highly correlated with game time?  I would have thought that this would be lower in game 1 of the double header compared to game 2 and the regular season games.
+
+After I added a summary for total_pitchers used across all of these games did something jump out at me.  The average number of pitchers used in game 1 of a double header was 4.84 compared to 5.17 of game 2 and 5.97 of a regular season game!
+
+From here I ran a series of graphs to confirm what I think I found!  First a scatteplot to show the positive relationship between total_pitchers and time_of_game.
+
+Now let's switch to a line graph without the game numbers
+
+```{r Multivariate_Plots10, echo=FALSE, fig.width = 8, fig.height = 6}
+# create the line graph for pitchers used through the years
+pitch_plot <- ggplot(aes(x = year, y = mean_pitchers), data = gn_yr_summ) +
+  geom_line(stat = 'summary', fun.y = mean) +
+  scale_x_continuous(breaks = seq(1950, 2014,5)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle('average pitchers used \nthrough the years')
+
+# create the line graph for game time through the years
+gt_plot2 <- ggplot(aes(x=year, y = median_gt), data = gt_year) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(1950, 2014,5)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle('median game time \nthrough the years')
+
+# now we'll picture them side by side
+grid.arrange(pitch_plot, gt_plot2, ncol = 2)
+
+```
+
+When I look at the average number of pitchers used in a game across years, I see something that looks very familiar to a graph that I created earlier.  Comparing the total_pitchers to median game time through the years created remarkably similar graphs.
+
+```{r Multivariate_Plots11, echo=FALSE}
+
+#game_logs$pitch_factor <- factor(game_logs$total_pitchers)
+# let's create a factor to show the uses here.
+# I expect that if each team used a starting pitcher and one reliever than we are at 4
+# pitchers used in a game.  Anything less than that means we have a heck of a start
+# from one of the pitchers
+#  I would think that if each team used 3/4 pitchers.. Starting pitcher and 2 to 3 relievers.
+# we're in the that puts us in the 5 - 8 range
+#  Then if one team gets crazy with pitching changes we could expect the range to go to 8 -13
+#  but if both teams get crazy, we're thinking 13 to 18.  (extra inning games would be more,
+#   we subsetted our data to exclude those games)
+game_logs$pitch_factor <- cut(game_logs$total_pitchers, breaks = c(2,5,8,13,18))
+summary(game_logs$pitch_factor)
+
+
+# now let's see how well pitching factor performs in showing us something
+ggplot(aes(x = year, y= WH, color = pitch_factor), data = subset(game_logs, !is.na(pitch_factor))) +
+  geom_jitter(alpha = 1/2) +
+  scale_x_continuous(breaks = seq(1950, 2014,5)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_brewer(palette="YlOrRd") +
+  ggtitle('Total pitchers used through the years \n as it relates to Walks + Hits')
+
+
+## TOTAL PITCHERS USED!!!
+```
+
+In this graph we can see that Walks+Hits hasn't changed much over the years (like our graph with game time as the color), but instead of game_time as the color, I used the pitching factor that I created.  And the output looks really good and explains a lot.  We'll definitely use this as one of the final plots!
+
+
+### Were there any interesting or surprising interactions between features?
+
+Of surprise was the way pitching staffs have been used over time.  In the early years of the dataset you can see that a higher number of pitchers used is related to the number of Walks + Hits given up.  However starting around 1974, more pitching changes were starting to be made regardless of the walks + Hits currently given up.  Further research indicated that Major League Baseball rewrote it's definition of the save statistic and modern bullpen usauge started to take shape.
+
+For example, starting pitchers in the post-war and deadball2 eras consistently threw more innnings than today's starters (Example: Bob Gibson 300+ innings in 1968).  Today's starters routinely pitch 6 innings and are replaced by situational specialist from the bullpen in the 7th and 8th innings followed by the best pitcher for the 9th inning.  (Consider Aroldis Chapman record holder for the fastest pitch ever thrown who pitches the 9th inning for the Reds)
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+
+I did not create a model for my dataset, as new rule changes in affect this year in baseball would make a model based on past years useless.  However we can use this dataset to compare to the final 2015 game data to detect if the rule changes had the impact that Major League Baseball has intended.
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r Plot_One, echo=FALSE,fig.width = 8, fig.height = 6}
+# lets bring back the number of pitchers used on average
+# but let's compare that to double header games
+# first add the dbl_header variable
+
+gn_yr_table <- group_by(game_logs, year, dbl_header)
+gn_yr_summ <- summarize(gn_yr_table,
+                          median_so = median(as.numeric(total_SO)),
+                          median_wh = median(as.numeric(WH)),
+                          median_gt = median(as.numeric(time_of_game)),
+                          mean_pitchers = mean(total_pitchers),
+                          n = n())
+
+ggplot(aes(x = year, y = mean_pitchers), data = gn_yr_summ) +
+  geom_point(aes(color = dbl_header, size = median_gt)) +
+  scale_x_continuous(breaks = seq(1950, 2014,5)) +
+  scale_y_continuous(breaks = seq(4, 8, 1)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle('The average pitchers used in \nDouble Headers each year') +
+  labs(x = 'Year of Games', y = 'Average Pitchers Used') +
+  guides(colour = guide_legend("Double Header"), size = guide_legend("Length of Game"))
+```
+
+### Description One
+
+This plot shows how I came to realize that it wasn't a well rested pitcher facing a tired offense that drove shorter game times.  What I realized that in a double header you don't have the opportunity to rest pitchers between games, and therefore a manager would be less inclined to make pitching changes in game 1 of the double header just in case game 2 warranted more pitching help.
+
+Also in game 2, you can assume that all pitchers from game 1 would likely be off limits for use in that game.  Therefore by default the use of pitchers would be less than a non-double header game
+
+The Y axis focuses on the number of pitchers used across the years (x axis).  The color indicates whether the game was part of a double header or not.  Size of the point represents the median game time.
+
+
+### Plot Two
+```{r Plot_Two, echo=FALSE, fig.width = 8, fig.height = 6}
+# pull in the game time and compare that to the number of pitchers used
+# set the guide to be a colorbar
+# Retitle the variables
+ggplot(aes(x = total_pitchers, y = time_of_game, color = year), 
+       data = get_sample(game_logs, sample_size = 10000)) +
+  geom_point(alpha = .25,size = 5, position = 'jitter') + 
+  scale_colour_gradient(low = "#009933", high = "#000099",
+  space = "Lab", na.value = "grey50", guide = guide_colorbar(title = 'Year of Game')) +
+  ggtitle('The Effect of total pitchers used \n on the time of game') + 
+  labs(x = 'Number of Pitchers Used', y = 'Length of Game (mins)') +
+  scale_x_continuous(breaks = seq(0, 18,3)) + 
+  scale_y_continuous(breaks = seq(50, 300, 25))
+```
+
+### Description Two
+The first plot showed the difference between double headers and regular games.  This one focuses on the use of pitchers throughout the years(x axis) and its affect on the length of the game (y axis). The graph shows there is a high correlation between the number of pitchers used and the length of a baseball game.  You can also see by the coloring of the scatterplot that games from an earlier time period were more likely to end a game with only having used 2,3 and 4 pitchers.  At 5 pitchers more current games start to dominate in this visualization.
+
+To prevent overplotting in this case we used only 10,000 of the over 114,000 available observations.
+
+It was only after examining why the 1st game of the double header was shorter than any other game on average that the total pitchers used relationship revealed itself.
+
+### Plot Three
+
+This plot will focus on how pitching changes have been done through the years when considering the number of walks + hits in a game
+
+```{r Plot_Three, echo=FALSE, fig.width = 8, fig.height = 6}
+# now let's see how well pitching factor performs in showing us something
+ggplot(aes(x = year, y= WH, color = pitch_factor), data = subset(game_logs, 
+                                                                 !is.na(pitch_factor))) +
+  geom_jitter(alpha = 1/2) +
+  scale_x_continuous(breaks = seq(1950, 2014,5)) +
+  scale_y_continuous(breaks = seq(10, 60, 10)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_brewer(palette="YlOrRd") +
+  ggtitle('Total pitchers used through the years \n as it relates to Walks + Hits') +
+  guides(colour = guide_legend("Pitchers Used")) +
+  labs(x = 'Year of Game', y = 'Walks + Hits')
+```
+
+### Description Three
+
+The initial hypothesis for this investigation was that Walks + Hits would be the ultimate driver of the length of a baseball game.  The graph shows that total Walks + Hits hasn't changed over the years much (if at all), but what has changed is the number of pitchers used.  Again you can see from this graph that pitching changes were highly correlated with Walks + Hits in the early years but the trend starting around 1974 (with the redefinition of a "save"), was to make more pitching changes regardless of the current pitchers stats at the time of the change.  Managers in recent years are more prone to try and take advantage of matchups after their starter has gone 5 or more innings.
+
+# Reflection
+
+First of all I must admit that I enjoy baseball above all other sports and that helped drive my curiosity more than anything.  But what I found most interesting is how much my pre-conceived notions about the data drove my initial research.  If I hadn't been driven to figure out why game 1 of a double header was shorter than any other game, I don't think I would have found the relationship of pitching changes to the time of game.
+
+The Walks + Hits variable was actually very misleading because there is a realtionship for sure, but that relationship only seems to hold up within a given year.  It was very interesting to find that even though game length has increased year after year.. that Walks + Hits did not.  So finding that pitching changes increasing over the years was quite exciting.  
+
+Some further analysis could compare teams over the last 20 years to see if the teams with the highest game times are also the teams that make the most pitching changes.  It would also be interesting to compare the average number of innings pitched by a starting pitcher over time.  My guess is that the number has slowly declined from just over 8 innings to just over 6 innings.
+
+The last analysis I would do with this dataset would to compare the length of games managed by Tony Larussa compared to all other managers in major league baseball.  Being a cardinal fan I had grown accustomed to what was known as the "Parade of Relievers" when LaRussa managed.  I would be curious to find out if his managing tactics were so bad when compared to others in the major leagues in the same time period.  
+
+Thanks for Reading.  Jason Bowles

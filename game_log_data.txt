@@ -1,0 +1,92 @@
+Game Logs
+
+Game Logs from Major League Baseball from 1950 - 2014
+
+Description:
+The data here includes game information for Major League Baseball games from 1950 through 2014.  This includes 126,513 observations,
+and 76 variables.  Python scripts were used to pull the data from retrosheet and then add in the era and starting hof variables.  Hall of Fame
+pitchers were pulled from wikipedia and cross reference with the list here: http://www.retrosheet.org/retroID.htm  I used excel and a vlookup
+formula to create the Hall Of Fame csv file.
+
+code was also added to properly calculate the number of innings played.
+
+Format:
+Comma Seperated Values file
+
+Details:
+
+Field 					Description
+date					The Date of the Game (format: yyyymmdd)
+starting_hof			The Number of Starting Pitchers that are now in the Hall of Fame (As of 7/27/2015)
+era						What "era" was this game played in:  (i.e. Deadball, Post War, Steroids, etc..)
+game_number     		Number of game:
+                                           "0" -- a single game
+                                           "1" -- the first game of a double (or triple) header
+                                                                                including seperate admission doubleheaders
+                                           "2" -- the second game of a double (or triple) header
+                                                                                including seperate admission doubleheaders
+                                           "3" -- the third game of a triple-header
+                                           "A" -- the first game of a double-header involving 3 teams
+                                           "B" -- the second game of a double-header involving 3 teams
+day_of_week    			Day of week  ("Sun","Mon","Tue","Wed","Thu","Fri","Sat")
+visiting_team			Visiting team and league
+visiting_league
+visiting_game_number    Visiting team game number
+                                        For this and the home team game number, ties are counted as
+                                        games and suspended games are counted from the starting
+                                        rather than the ending date.
+home_team                Home team and league
+home_league
+home_game_number         Home team game number
+innings_played			 The number of innings played in the game
+visit_score              Visiting and home team score (unquoted)
+home_score
+game_outs                Length of game in outs (unquoted).  A full 9-inning game would
+                                        have a 54 in this field.  If the home team won without batting
+                                        in the bottom of the ninth, this field would contain a 51.
+day_night_ind            Day/night indicator ("D" or "N")
+attendance               Attendance (unquoted)
+time_of_game             Time of game in minutes (unquoted)
+visit_line_score         Visiting and home line scores.  For example:
+home_line_score                            "010000(10)0x"
+                                        Would indicate a game where the home team scored a run in
+                                        the second inning, ten in the seventh and didn't bat in the
+                                        bottom of the ninth.
+prefaced w/ 'visit_'     Visiting team offensive statistics (unquoted) (in order):
+AB                                         at-bats
+hits                                       hits
+2B                                         doubles
+3B                                         triples
+HR                                         homeruns
+RBI                                        RBI
+SACH                                       sacrifice hits.  This may include sacrifice flies for years
+                                                             prior to 1954 when sacrifice flies were allowed.
+SAC                                        sacrifice flies (since 1954)
+HBP                                        hit-by-pitch
+BB                                         walks
+IBB                                        intentional walks
+SO                                         strikeouts
+SB                                         stolen bases
+CS                                         caught stealing
+GDP                                        grounded into double plays
+CatcherInterference                        awarded first on catcher's interference
+LOB                                        left on base
+prefaced w/ 'visit_'     Visiting team pitching statistics (unquoted)(in order):
+pitchers                                   pitchers used ( 1 means it was a complete game )
+ER                                         individual earned runs
+TeamER                                     team earned runs
+WildPitch                                  wild pitches
+Balk                                       balks
+prefaced w/ 'visit_'     Visiting team defensive statistics (unquoted) (in order):
+Putout                                     putouts.  Note: prior to 1931, this may not equal 3 times
+                                                             the number of innings pitched.  Prior to that, no
+                                                             putout was awarded when a runner was declared out for
+                                                             being hit by a batted ball.
+assists                                    assists
+errors                                     errors
+passed_ball                                passed balls
+DP                                         double plays
+Triple_Play                                triple plays
+prefaced w/ 'home_'      Home team offensive statistics (same order as visiting offensive statistics)
+prefaced w/ 'home_'      Home team pitching statistics  (same order as visiting pitching statistics)
+prefaced w/ 'home_'      Home team defensive statistics (same order as visiting defensive statistics)

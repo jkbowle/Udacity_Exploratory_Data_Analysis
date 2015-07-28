@@ -1,0 +1,16 @@
+Python Scripts:
+GetRetroData.py:  Pull down game logs from 1950 through 2014 and then combine theme into 1 file
+ProcessRetroData.py: pull out extra columns not needed for EDA and add a few extra variables for analysis
+
+
+Websites Used:
+RetroSheet:
+http://www.retrosheet.org/retroID.htm
+http://www.retrosheet.org/gamelogs/index.html
+http://www.retrosheet.org/gamelogs/glfields.txt
+
+Wikipedia (hall of fame)
+https://en.wikipedia.org/wiki/List_of_members_of_the_Baseball_Hall_of_Fame
+
+Huffingpost:
+http://www.huffingtonpost.com/quora/what-are-the-major-eras-o_b_3547814.html
