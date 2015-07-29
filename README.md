@@ -1,7 +1,9 @@
 # Udacity_Exploratory_Data_Analysis
 required files for Udacity EDA course and final submission
 
-This entry includes all of my work for my final submission for my Udacity course: Exploratory Data Analysis
+This entry includes all of my work for my final submission for my Udacity course: Exploratory Data Analysis.
+
+[Review My Final Project!](https://cdn.rawgit.com/jkbowle/Udacity_Exploratory_Data_Analysis/master/final_project_bowles.html)
 
 ##R Files
 * **final_project_bowles.Rmd:**  R Markdown file
