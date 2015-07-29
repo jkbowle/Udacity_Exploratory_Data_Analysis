@@ -1,3 +1,6 @@
+---
+output: html_document
+---
 Length of games in Major League Baseball by Jason Bowles
 ========================================================
 
@@ -168,7 +171,7 @@ summary(game_logs$dbl_header)
 The distribution of total runs has a longer tail than Walks + Hits and some definite spikes!  Which may indicate that the Walks+Hits and total runs are not as highly correlated as I would have thought
 
 This last part is to see what kind of distribution we have.  The histograms suggest that they may be normally distributed, but let's see if it is a statistically valid assumption
-```{r Univariate_Plots5, echo=FALSE}
+```{r Univariate_Plots5, echo=FALSE, warning=FALSE}
 #shapiro.test has a limitation of 5000 observations
 ks.test(x=game_logs$time_of_game,y='pnorm',alternative='two.sided')
 ks.test(x=game_logs$WH, y='pnorm',alternative='two.sided')
