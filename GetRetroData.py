@@ -58,7 +58,7 @@ year = start
 print 'header has: '+str(len(header))+ ' fields'
 proxy_handler = urllib2.ProxyHandler({'http': 'http://ccproxy.countrylan.com:8080'})
 proxy_auth_handler = urllib2.ProxyBasicAuthHandler()
-proxy_auth_handler.add_password('retro_sheet', 'http://www.retrosheet.org/gamelogs/', 'id19868', 'Avery007')
+proxy_auth_handler.add_password('retro_sheet', 'http://www.retrosheet.org/gamelogs/', '*******', '********')
 opener = urllib2.build_opener(proxy_handler, proxy_auth_handler)
 urllib2.install_opener(opener)
     
