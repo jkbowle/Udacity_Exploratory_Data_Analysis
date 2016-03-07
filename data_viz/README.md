@@ -45,5 +45,5 @@
 ## Data 
 >This is a custom dataset pulled from [http://www.retrosheet.org/](http://www.retrosheet.org/ "http://www.retrosheet.org/").
 
-From their “game logs” section http://www.retrosheet.org/gamelogs/index.html, I pulled only games from 1950 to 2014 so as to keep my observations down to under 150K. A summary of the variables found in this dataset can be found [here](http://www.retrosheet.org/gamelogs/glfields.txt "game data fields"). For this analysis we’ll narrow it down to the following fields:
+>From their “game logs” section http://www.retrosheet.org/gamelogs/index.html, I pulled only games from 1950 to 2014 so as to keep my observations down to under 150K. A summary of the variables found in this dataset can be found [here](http://www.retrosheet.org/gamelogs/glfields.txt "game data fields"). For this analysis we’ll narrow it down to the following fields:
 <strong>home_team,home_league,time_of_game,runs,SO,BB,AB,hits,GDP,pitchers_used,DP,year,WH,era</strong>
