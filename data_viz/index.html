@@ -145,6 +145,9 @@
     <script type="text/javascript">  
       function draw(retro_data) {
         "use strict";
+        // setting up the final canvas for our visualization
+        // this was different than what was shown in the class.. .but I liked this setup much better which 
+        //  I found in a Mike Bostock example
         var margin = {top: 20, right: 20, bottom: 30, left: 240},
               width = 900 - margin.left - margin.right,
               height = 500 - margin.top - margin.bottom;
@@ -163,7 +166,9 @@
             .attr("height", height + margin.top + margin.bottom)
           .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-		
+	
+	// this is just a holder for the year that will show as part of the initial animation
+	// added it here so that it is behind all of the circles and thus not interfering with the tooltips
         svg.append("text")
            .style("font-size","150px")
 		   .style("opacity",0.25)
@@ -218,6 +223,7 @@
 		var radius = d3.scale.sqrt()
 		               .domain([6,runs_max])
 		        	   .range([0,15]);
+		        	   
 		// the setup of the x and y axis was from a Mike Bostock scatter plot example
 		// I liked the way it was setup vs. the way it was done in the class
 		
@@ -308,7 +314,9 @@
 		d3.selectAll(".dot").style("opacity", 0);
 
 		
-		   
+	// this section gets called when a new selection for the x axis is picked by the reader
+	// just setting up the xScale, xAxis and xMap
+	// then just moving the x coordinate with a transition
 	    function update_x(selected_stat, yValue)
 		{		
 			
@@ -342,6 +350,9 @@
 			return xValue;
 		}
 		
+		// this section gets called when a new selection for the y axis is picked by the reader
+                // just setting up the yScale, yAxis and yMap
+         	// then just moving the y coordinate with a transition
 		function update_y(selected_stat, xValue)
 		{		
 			
@@ -374,6 +385,8 @@
 			return yValue;
 		}
 		
+		// This is part of the intro animation...  all of the circles are already on the canvas, but their
+		//  opacity is set to zero, here we are just slowly making them visible
 		function do_filter(year)
 		{
 			d3.select('h2')
@@ -455,14 +468,14 @@
 		 }, 300);
 		 
 		 
-		 // handle on click event
+		 // handle on y axis click event
           d3.select('#opts_y')
             .on('change', function() {
                 var new_select = d3.select(this).node().value;
                 yValue = update_y(new_select, xValue);
             });
 		
-		  // handle on click event
+		  // handle on x axis click event
           d3.select('#opts_x')
             .on('change', function() {
                 var new_select = d3.select(this).node().value;
