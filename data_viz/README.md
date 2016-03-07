@@ -1,6 +1,6 @@
 # Make Effective Data Visualization - Final Project
 ## Summary
->This data visualization shows the growing trend in Major League Baseball to use more and more pitchers in a game.  This trend over time has dramatically increased the length of games in baseball.  I want to walk the reader through the growing trend year by year, but then open up the viz for the reader to explore and verify for themselves.
+>[This data visualization](http://bl.ocks.org/jkbowle/raw/73c5a7abdb0993a08972/ "final version") shows the growing trend in Major League Baseball to use more and more pitchers in a game.  This trend over time has dramatically increased the length of games in baseball.  I want to walk the reader through the growing trend year by year, but then open up the viz for the reader to explore and verify for themselves.
 
 ## Design
 > The design is to make use of a scatter plot to show the relationship between average pitchers used in a season and the median length of a game.
