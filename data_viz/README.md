@@ -34,4 +34,12 @@
 > > The 3rd was by phone from a fellow Data Scientist at State Farm Insurance on Thursday, March 3rd around 3pm CST.  His feedback was that it wasn't immediately clear what I was trying to show in the visualization and that it should very easy for the reader to see this right away.  He also stated that he wasn't convinced that it was the pitchers used in a game that led to the overall length of the game.  He mentioned that pitches thrown per game would be nice to see (which I agree and if I had the data I would have used that to size the circle radius instead of runs scored).  
 
 ## Resources
+> I found some good help for my tool tip at this [resource](http://bl.ocks.org/Caged/6476579 "Gist D3-Tip example")
+
+> Found a cool way to add a little [animation to the tooltip](animation to the tooltip)
+
+> Looking for some good fonts, I came across this [nice writeup](http://www.webdesigndev.com/16-gorgeous-web-safe-fonts-to-use-with-css/)
+
+> And countless examples from [Mr. Mike Bostock](https://bost.ocks.org/mike/)
+
 ## Data 
