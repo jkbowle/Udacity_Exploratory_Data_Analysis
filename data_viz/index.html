@@ -141,24 +141,38 @@
       color: #333333;
       font-family: Georgia, Serif;
 	}
+	
+	.popup {
+        position: absolute;
+        left: 0;
+        top: 0;
+        background-color: #fff;
+        width: 400px;
+        border: 1px #ccc solid;
+        border-radius: 6px;
+        box-shadow: #333 2px 2px 4px;
+        padding: 8px;
+		font-size: 12px;
+        font-family: arial, helvetica, sans-serif;
+    }
+    .popup h2 {
+        margin: 0 0 1rem 0;
+    }
     </style>
     <script type="text/javascript">  
       function draw(retro_data) {
         "use strict";
-        // setting up the final canvas for our visualization
-        // this was different than what was shown in the class.. .but I liked this setup much better which 
-        //  I found in a Mike Bostock example
         var margin = {top: 20, right: 20, bottom: 30, left: 240},
               width = 900 - margin.left - margin.right,
               height = 500 - margin.top - margin.bottom;
 
 		d3.select("div#a")
               .append("h1")
-              .text("Increase in Game Time in MLB Baseball Games");
+              .text("");
 			  
 		d3.select("div#a")
               .append("h2")
-              .text("--- holder ---");
+              .text("");
 
         // add the graph canvas to the body of the webpage
         var svg = d3.select("div#a").append("svg")
@@ -166,9 +180,7 @@
             .attr("height", height + margin.top + margin.bottom)
           .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-	
-	// this is just a holder for the year that will show as part of the initial animation
-	// added it here so that it is behind all of the circles and thus not interfering with the tooltips
+		
         svg.append("text")
            .style("font-size","150px")
 		   .style("opacity",0.25)
@@ -223,12 +235,11 @@
 		var radius = d3.scale.sqrt()
 		               .domain([6,runs_max])
 		        	   .range([0,15]);
-		        	   
 		// the setup of the x and y axis was from a Mike Bostock scatter plot example
 		// I liked the way it was setup vs. the way it was done in the class
 		
 		// setup y
-	    var yValue = function(d) { return d.values[0].values["pitchers_used"];}, // data -> value
+	    var yValue = function(d) { return d.values[0].values["time_of_game"];}, // data -> value
         yScale = d3.scale.linear().range([height, 0]), // value -> display
         yMap = function(d) { return yScale(yValue(d));}, // data -> display
         yAxis = d3.svg.axis().scale(yScale).orient("left");
@@ -236,7 +247,7 @@
 		
 			
 		// setup x
-		var xValue = function(d) { return d.values[0].values['time_of_game'];}, // data -> value
+		var xValue = function(d) { return d.values[0].values['year'];}, // data -> value
 		xScale = d3.scale.linear().range([0, width]), // value -> display
 		xMap = function(d) { return xScale(xValue(d));}, // data -> display
 		xAxis = d3.svg.axis().scale(xScale).orient("bottom");
@@ -254,7 +265,7 @@
             .attr("y", 6)
             .attr("dy", ".71em")
             .style("text-anchor", "end")
-            .text("Pitchers Used");
+            .text("Length Of Game");
 		// x-axis
         svg.append("g")
             .attr("class", "x axis")
@@ -265,7 +276,7 @@
             .attr("x", width)
             .attr("y", -6)
             .style("text-anchor", "end")
-            .text("Length of Game");
+            .text("Year");
 		
 		// setup fill color
 		var cValue = function(d) { return d.values[0].key;},
@@ -311,15 +322,93 @@
               tip.hide()
             });
 		debugger;
-		d3.selectAll(".dot").style("opacity", 0);
-
-		
-	// this section gets called when a new selection for the x axis is picked by the reader
-	// just setting up the xScale, xAxis and xMap
-	// then just moving the x coordinate with a transition
-	    function update_x(selected_stat, yValue)
-		{		
+		//d3.selectAll(".dot").style("opacity", 0);
+		var clicks = 0;
+		var popup = d3.select(".canvas")
+		    .append("div")
+            .attr("class", "popup")
+            .style("left", "275px")
+			.style("display", "block")
+            .style("top", "15px");
+            popup.append("h2").text("Over the years the Length of MLB Baseball Games has dramatically Increased");
+            popup.append("p").text("In this chart you can see that change over time, regardless of the era of baseball")
+            popup.append("p").text("Click Next Continue.");
 			
+			popup.append("input")
+			     .attr("type","button")
+				 .attr("value","Next")
+				 .on("click", function() {
+                        clicks += 1;
+                       iterate_next(clicks);
+                  });
+		   
+		   
+	     // the narrative now is to slowly draw them through the data
+		function iterate_next(click_num) {
+		     if (click_num == 1)
+			 {
+				 d3.select("div.popup h2").text("The number of Pitchers Used has also been increasing over the years");
+				 d3.select("div.popup p").text("Modern Usage of Pitching staffs has relied on 1 inning and 1 batter specialist.");
+				 yValue = update_y("pitchers_used:Avg. Pitchers Used",xValue);
+			 }
+			 if (click_num == 2)
+			 {
+			    d3.select("div.popup h2").text("The Number of Pitchers used clearly shows an impact on the number of strikeouts over the years.");
+				d3.selectAll("div.popup p").text("Click Next To See How Pitchers Used Has Effected the length of Games");
+				 d3.select("div.popup p").text("The evolution of the game has made both positive and negative impacts.");
+				 d3.select("div.popup").append("p").style("font-weight","bold").text("Once complete you will have the opportunity to play with the data!!");
+				 xValue = update_x("SO:Strike Outs", yValue);
+			 }
+		     if (click_num == 3)
+			 {
+			 
+				 debugger;
+				 d3.selectAll(".dot").style("opacity", 0);
+			     xValue = update_x("time_of_game: Length of Games", yValue);
+				 setTimeout(function(){
+				       yValue = update_y("pitchers_used:Avg. Pitchers Used",xValue);
+				 }, 1000);
+				 setTimeout(function(){
+                       play_years();
+                 }, 1000);
+				
+		     }
+		}
+		
+		// animate the years
+		function play_years()
+		{
+			     d3.select("h1").text("Increase in Game Time in MLB Baseball Games");
+				 d3.select(".popup").style("display","none");
+			     var year_idx = 0;
+
+		         var year_interval = setInterval(function() {
+		             do_filter(years[year_idx]);
+		        	 
+		        	 year_idx++;
+		        	 
+		        	 if(year_idx >= years.length){
+		        	     clearInterval(year_interval);
+		        		 d3.select("#_year_txt")
+		        	       .transition()
+		        	       .duration(2000)
+		        	       .style("opacity",0);
+		        		   
+		        		 d3.select(".dropdown")
+		        		   .transition()
+		        		   .duration(500)
+		        		   .style("display", "block");
+		        	 }
+		         }, 200);
+		}
+		
+		// update the x axis
+	    function update_x(selection, yValue)
+		{		
+		    // grab our variables
+			var select_split = selection.split(":");
+			var selected_stat = select_split[0];
+			var label = select_split[1];
 			// setup x
 	    	
             var xValue = function(d) { return d.values[0].values[selected_stat];}, // data -> value
@@ -345,17 +434,18 @@
 			d3.selectAll("g.x.axis")
 			  .call(xAxis);
 			
-			d3.select("g.x.axis text.label").text(selected_stat)
+			d3.select("g.x.axis text.label").text(label)
 			  
 			return xValue;
 		}
 		
-		// this section gets called when a new selection for the y axis is picked by the reader
-                // just setting up the yScale, yAxis and yMap
-         	// then just moving the y coordinate with a transition
-		function update_y(selected_stat, xValue)
+		// update the y axis
+		function update_y(selection, xValue)
 		{		
-			
+			// get our values
+			var select_split = selection.split(":");
+			var selected_stat = select_split[0];
+			var label = select_split[1];
 			// setup y
 	    	var yValue = function(d) { return d.values[0].values[selected_stat];}, // data -> value
             yScale = d3.scale.linear().range([height, 0]), // value -> display
@@ -380,13 +470,12 @@
 			d3.selectAll("g.y.axis")
 			  .call(yAxis);
 			
-			d3.select("g.y.axis text.label").text(selected_stat)
+			d3.select("g.y.axis text.label").text(label)
 			  
 			return yValue;
 		}
 		
-		// This is part of the intro animation...  all of the circles are already on the canvas, but their
-		//  opacity is set to zero, here we are just slowly making them visible
+		// only show the years that are currently being walked through
 		function do_filter(year)
 		{
 			d3.select('h2')
@@ -451,36 +540,20 @@
 			
 		   
 		 debugger;
-		 var year_idx = 0;
-
-		 var year_interval = setInterval(function() {
-		     do_filter(years[year_idx]);
-			 
-			 year_idx++;
-			 
-			 if(year_idx >= years.length){
-			     clearInterval(year_interval);
-				 d3.select("#_year_txt")
-			       .transition()
-			       .duration(2000)
-			       .style("opacity",0);
-			 }
-		 }, 300);
-		 
-		 
-		 // handle on y axis click event
+		 // handle on click event
           d3.select('#opts_y')
             .on('change', function() {
                 var new_select = d3.select(this).node().value;
                 yValue = update_y(new_select, xValue);
             });
 		
-		  // handle on x axis click event
+		  // handle on click event
           d3.select('#opts_x')
             .on('change', function() {
                 var new_select = d3.select(this).node().value;
                 xValue = update_x(new_select, yValue);
             });
+	
       };
       </script>
   </head>
@@ -501,35 +574,38 @@ d3.csv("game_log2.csv", function(d) {
         return d;
     }, draw);
   </script>
-  <div id="a">
+  <div id="a" class="canvas">
+
+  <div id="a1" class="dropdown" style="display: none;">
    Y Axis:  
   <select id = "opts_y">
-	<option value="pitchers_used" selected="selected">Pitchers Used</option>
-	<option value="SO">Strike Outs</option>
-	<option value="AB">At Bats</option> 
-	<option value="BB">Walks</option>
-	<option value="hits">Hits</option>
-	<option value="WH">Walks + Hits</option>
-	<option value="DP">Double Plays</option>
-	<option value="runs">Runs Scored</option>
+	<option value="pitchers_used:Avg. Pitchers Used" selected="selected">Pitchers Used</option>
+	<option value="SO:Avg. Strike Outs">Strike Outs</option>
+	<option value="AB:Avg. At Bats">At Bats</option> 
+	<option value="BB:Avg. Walks">Walks</option>
+	<option value="hits:Avg. Hits">Hits</option>
+	<option value="WH:Avg. Walks and Hits">Walks + Hits</option>
+	<option value="DP:Avg. Double Plays">Double Plays</option>
+	<option value="runs:Avg. Runs Scored">Runs Scored</option>
 	<option value="year">Year</option>
-	<option value="time_of_game">Length of Game</option>
+	<option value="time_of_game: Length of Games">Length of Game</option>
   </select>
   Pick a stat from the drop down to change what is compared to the X Axis<BR/>
    X Axis:  
   <select id = "opts_x">
-	<option value="time_of_game" selected="selected">Length of Game</option>
-	<option value="SO">Strike Outs</option>
-	<option value="AB">At Bats</option> 
-	<option value="BB">Walks</option>
-	<option value="hits">Hits</option>
-	<option value="WH">Walks + Hits</option>
-	<option value="DP">Double Plays</option>
-	<option value="runs">Runs Scored</option>
+	<option value="pitchers_used:Avg. Pitchers Used">Pitchers Used</option>
+	<option value="SO:Avg. Strike Outs">Strike Outs</option>
+	<option value="AB:Avg. At Bats">At Bats</option> 
+	<option value="BB:Avg. Walks">Walks</option>
+	<option value="hits:Avg. Hits">Hits</option>
+	<option value="WH:Avg. Walks and Hits">Walks + Hits</option>
+	<option value="DP:Avg. Double Plays">Double Plays</option>
+	<option value="runs:Avg. Runs Scored">Runs Scored</option>
 	<option value="year">Year</option>
-	<option value="pitchers_used">Pitchers Used</option>
+	<option value="time_of_game: Length of Games" selected="selected">Length of Game</option>
   </select>
   Pick a stat from the drop down to change what is compared to the Y Axis<BR/>
+  </div>
   </div>
 <div id = "b" class="reflect">
 <p class = "main">
