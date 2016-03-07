@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/1.8.0/d3-legend.min.js"></script>
+    <style>
+	/* next stuff on webkit and keyframes is for the tooltip animation.. pretty snazzy */
+	@-webkit-keyframes bounceIn {
+       0% {
+         opacity: 0;
+         -webkit-transform: scale(.3);
+       }
+       50% {
+         opacity: 1;
+         -webkit-transform: scale(1.05);
+       }
+       70% {
+         -webkit-transform: scale(.9);
+       }
+       100% {
+         -webkit-transform: scale(1);
+       }
+     }
+     @keyframes bounceIn {
+       0% {
+         opacity: 0;
+         transform: scale(.3);
+       }
+       50% {
+         opacity: 1;
+         transform: scale(1.05);
+       }
+       70% {
+         transform: scale(.9);
+       }
+       100% {
+         transform: scale(1);
+       }
+     }
+	 
+	 /* default fill of the circles */
+	circle {
+        fill: orange;
+        stroke: orange;
+        stroke-width: 0.7;
+      }
+	  
+	h1 {
+          color: black;
+          text-align: center;
+		  font-family: Georgia, Serif;
+        }
+	
+	h2 {
+          color: black;
+          text-align: center;
+		  font-family: Georgia, Serif;
+        }
+	
+	body {
+	      font-size: 10px;
+          font-family: Georgia, Serif;
+        }
+        
+		/* make the axis line super thin and cool */
+        .axis path,
+        .axis line {
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+        }
+        
+        .dot {
+          stroke: #000;
+        }
+     
+	 /* positioning of the tooltip */
+        .tooltip {
+          position: absolute;
+          width: 200px;
+          height: 28px;
+          pointer-events: none;
+        }
+		
+	/* styling for the tool tip */
+	.d3-tip {
+      line-height: 1;
+      font-weight: bold;
+	  font-family: Georgia, Serif;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      border-radius: 2px;
+    }
+	
+	/* Found this little animation and thought it looked cool */
+	.d3-tip.animate {
+      animation: bounceIn 0.2s ease-out;
+      -webkit-animation: bounceIn 0.2s ease-out;
+     }
+
+    text.legendTitle {
+		text-align: left;
+		font-size: 20px;
+		font-family: Georgia, Serif;
+	}
+	
+	text.label {
+		font-size: 15px;
+		font-family: Georgia, Serif;
+	}
+	
+    /* Creates a small triangle extender for the tooltip */
+    .d3-tip:after {
+      box-sizing: border-box;
+      display: inline;
+      font-size: 10px;
+      width: 100%;
+      line-height: 1;
+      color: rgba(0, 0, 0, 0.8);
+      content: "\25BC";
+      position: absolute;
+      text-align: center;
+    }
+
+    /* Style northward tooltips differently */
+    .d3-tip.n:after {
+      margin: -1px 0 0 0;
+      top: 100%;
+      left: 0;
+    }
+	p.main {
+	  font-size: 17px;
+      color: #333333;
+      font-family: Georgia, Serif;
+    }
+	p.sub {
+	  font-size: 14px;
+      color: #333333;
+      font-family: Georgia, Serif;
+	}
+    </style>
+    <script type="text/javascript">  
+      function draw(retro_data) {
+        "use strict";
+        var margin = {top: 20, right: 20, bottom: 30, left: 240},
+              width = 900 - margin.left - margin.right,
+              height = 500 - margin.top - margin.bottom;
+
+		d3.select("div#a")
+              .append("h1")
+              .text("Increase in Game Time in MLB Baseball Games");
+			  
+		d3.select("div#a")
+              .append("h2")
+              .text("--- holder ---");
+
+        // add the graph canvas to the body of the webpage
+        var svg = d3.select("div#a").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		
+        svg.append("text")
+           .style("font-size","150px")
+		   .style("opacity",0.25)
+           .attr("y", 200)
+           .attr("x", 200)
+		   .attr("id", "_year_txt")
+           .attr("dy", ".47em")                        
+           .style("text-anchor", "start")
+           .style("fill", "#004669")
+           .style("font-weight", "bold")
+           .text("");		
+		
+		// pull out the aggregation code.  Use median for game time because prior EDA tells me that the distribution is non-normal
+		// mean works better, otherwise all of these variables look discrete in the visuals
+		function aggregate_year(leaves){
+			var game_time = d3.median(leaves,function(d) { return d['time_of_game'];});
+			var pitchers = d3.round(d3.mean(leaves,function(d) { return d['pitchers_used'];}),2);
+			var runs = d3.round(d3.mean(leaves,function(d) { return d['runs'];}),2);
+			var SO = d3.round(d3.mean(leaves,function(d) { return d['SO'];}),2);
+			var BB = d3.round(d3.mean(leaves,function(d) { return d['BB'];}),2);
+			var AB = d3.round(d3.mean(leaves,function(d) { return d['AB'];}),2);
+			var hits = d3.round(d3.mean(leaves,function(d) { return d['hits'];}),2);
+			var GDP = d3.round(d3.mean(leaves,function(d) { return d['GDP'];}),2);
+			var DP = d3.round(d3.mean(leaves,function(d) { return d['DP'];}),2);
+			var WH = d3.round(d3.mean(leaves,function(d) { return d['WH'];}),2);
+			var Year = d3.min(leaves,function(d) { return d['year'];});
+			return {'pitchers_used':pitchers,'runs':runs,'SO':SO,'BB':BB,'AB':AB,'hits':hits,'GDP':GDP,'DP':DP,'WH':WH,'time_of_game':game_time, 'year':Year};
+		};	
+		
+		// aggregate the data based on year and era
+		// if I have time, I may play around with a year and team aggregation.. that would be pretty darn cool
+		var nested = d3.nest()
+					   .key(function(d) { return d.year; })
+					   .key(function(d) { return d.era; })
+					   .rollup(aggregate_year)
+					   .entries(retro_data);
+		
+		
+		// create an array of valid years
+		var years = [];
+	     for (var i = 1950; i < 2015; i += 1)
+	     {
+	         years.push(i);
+	     }
+		 
+		// grab the max runs for the forthcoming scale for the circles
+		var runs_max = d3.max(nested ,function(d) {
+		    return d.values[0].values['runs']
+		});
+		
+		// variable to setup the scale of the radius for the circles
+		var radius = d3.scale.sqrt()
+		               .domain([6,runs_max])
+		        	   .range([0,15]);
+		// the setup of the x and y axis was from a Mike Bostock scatter plot example
+		// I liked the way it was setup vs. the way it was done in the class
+		
+		// setup y
+	    var yValue = function(d) { return d.values[0].values["pitchers_used"];}, // data -> value
+        yScale = d3.scale.linear().range([height, 0]), // value -> display
+        yMap = function(d) { return yScale(yValue(d));}, // data -> display
+        yAxis = d3.svg.axis().scale(yScale).orient("left");
+	    yScale.domain([d3.min(nested, yValue)-1, d3.max(nested, yValue)+1]);
+		
+			
+		// setup x
+		var xValue = function(d) { return d.values[0].values['time_of_game'];}, // data -> value
+		xScale = d3.scale.linear().range([0, width]), // value -> display
+		xMap = function(d) { return xScale(xValue(d));}, // data -> display
+		xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+		xScale.domain([d3.min(nested, xValue)-1, d3.max(nested, xValue)+1]);
+		
+		
+		// all of the heavy lifting for the axis has already been done.. just need to add those elements to the dom
+		// y-axis
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+          .append("text")
+            .attr("class", "label")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Pitchers Used");
+		// x-axis
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+          .append("text")
+            .attr("class", "label")
+            .attr("x", width)
+            .attr("y", -6)
+            .style("text-anchor", "end")
+            .text("Length of Game");
+		
+		// setup fill color
+		var cValue = function(d) { return d.values[0].key;},
+			 color = d3.scale.category10();
+		
+		
+		// set up the tooltip via the d3-tip library
+	    // mostly just setting the html values up and doing the rest with css
+	    var tip = d3.tip()
+                       .attr('class', 'd3-tip')
+                       .offset([-10, 0])
+                       .html(function(d) {
+                        return "<table>" +
+	    			 "<tr><td><strong>Year:</strong></td><td> <span style='color:red'>" + d.key 
+	    			 + "</span></td></tr><tr><td><strong>Era:</strong></td><td> <span style='color:red'>"+ d.values[0].key
+	    			 + "</span></td></tr><tr><td><strong>Runs:</strong></td><td> <span style='color:red'>"+ d.values[0].values['runs']+"</span></td></tr>"
+					 + "<tr><td><strong>Game Length:</strong></td><td> <span style='color:red'>"+ d.values[0].values['time_of_game'] +"</span></td></tr>"
+					 + "<tr><td><strong>Pitchers Used:</strong></td><td> <span style='color:red'>"+ d.values[0].values['pitchers_used'] +"</span></td></tr>"
+	    			 + "</table>";
+                        });
+          
+	    svg.call(tip);
+		
+		// draw dots
+		// the size of the circles is based on the average number of runs that year/era combination
+		// add some tool tips that I found doing some searches around d3-tip library.
+        svg.selectAll(".dot")
+           .data(nested)
+           .enter().append("circle")
+           .attr("class", "dot")
+           .attr("cx", xMap)
+           .attr("cy", yMap)
+		   .attr("id", function(d) { return "_"+d.key;})
+		   .style("fill", function(d) { return color(cValue(d));}) 
+		   .attr("r",function(d) { 
+		   var myr = radius(d.values[0].values['runs']);
+		   return myr;}) 
+           .on('mouseover', function(d) {
+               tip.attr('class', 'd3-tip animate').show(d)
+            })
+           .on('mouseout', function(d) {
+              tip.attr('class', 'd3-tip').show(d)
+              tip.hide()
+            });
+		debugger;
+		d3.selectAll(".dot").style("opacity", 0);
+
+		
+		   
+	    function update_x(selected_stat, yValue)
+		{		
+			
+			// setup x
+	    	
+            var xValue = function(d) { return d.values[0].values[selected_stat];}, // data -> value
+		    xScale = d3.scale.linear().range([0, width]), // value -> display
+		    xMap = function(d) { return xScale(xValue(d));}, // data -> display
+		    xAxis = d3.svg.axis().scale(xScale).orient("bottom").tickFormat(d3.format("d"));
+		    xScale.domain([d3.min(nested, xValue)-1, d3.max(nested, xValue)+1]);
+			debugger;	
+			// draw dots
+		    // the size of the circles is based on the average number of runs that year/era combination
+		    // add some tool tips that I found doing some searches around d3-tip library.
+			
+			var svg = d3.select("svg").transition();
+			
+			var circle = svg.selectAll(".dot");		         
+			
+			circle.attr("class","dot");
+			
+            circle.duration(750)
+               .attr("cx", xMap);
+				
+			//Update the x axis scale and label				  
+			d3.selectAll("g.x.axis")
+			  .call(xAxis);
+			
+			d3.select("g.x.axis text.label").text(selected_stat)
+			  
+			return xValue;
+		}
+		
+		function update_y(selected_stat, xValue)
+		{		
+			
+			// setup y
+	    	var yValue = function(d) { return d.values[0].values[selected_stat];}, // data -> value
+            yScale = d3.scale.linear().range([height, 0]), // value -> display
+            yMap = function(d) { return yScale(yValue(d));}, // data -> display
+            yAxis = d3.svg.axis().scale(yScale).orient("left").tickFormat(d3.format("d"));
+	    	yScale.domain([d3.min(nested, yValue)-1, d3.max(nested, yValue)+1]);
+			debugger;	
+			// draw dots
+		    // the size of the circles is based on the average number of runs that year/era combination
+		    // add some tool tips that I found doing some searches around d3-tip library.
+			
+			var svg = d3.select("svg").transition();
+			
+			var circle = svg.selectAll(".dot");		         
+			
+			circle.attr("class","dot");
+			
+            circle.duration(750)
+               .attr("cy", yMap);
+				
+			//Update the y axis scale and label				  
+			d3.selectAll("g.y.axis")
+			  .call(yAxis);
+			
+			d3.select("g.y.axis text.label").text(selected_stat)
+			  
+			return yValue;
+		}
+		
+		function do_filter(year)
+		{
+			d3.select('h2')
+			  .text("The Effect of Pitchers Used In Game to the Length of the Game (1950 to " + year + ")");
+			  
+			d3.select("#_year_txt")
+			  .transition()
+			  .duration(200)
+			  .text(year);
+							 
+			d3.select("#_"+year)
+			  .transition()
+			  .duration(500)
+			  .style("opacity",0.7);
+		}
+		debugger;
+		
+		  // draw legend for era colors
+		  // I appended this to the existing svg variable.. so in order to get this into the left hand 
+		  //  margin I had to set the x attribute to a negative number
+		  //  the legends are courtesy of the d3 legend js library
+           svg.append("g")
+             .attr("class", "legendOrdinal")
+             .attr("transform", "translate(-200,140)");
+           
+           var legendOrdinal = d3.legend.color()
+             .shape("path", d3.svg.symbol().type("circle").size(120)())
+             .shapePadding(5)
+			 .title("Baseball Era")
+             .scale(color);
+           
+           svg.select(".legendOrdinal")
+             .call(legendOrdinal);
+	
+		  
+		  // draw legend for bubble size
+		  // we want this at the top left of the visualization (in the left hand margin)
+
+         svg.append("g")
+           .attr("class", "legendSize")
+           .attr("transform", "translate(-220, 0)");
+         
+         var legendSize = d3.legend.size()
+           .scale(radius)
+           .shape('circle')
+		   .title('Avg. Runs Scored')
+           .shapePadding(20)
+           .labelOffset(20)
+           .orient('horizontal');
+         
+         svg.select(".legendSize")
+           .call(legendSize);
+		   
+		// draw white rectangle over some stuff that is displaying.. (can't figure out a way to remove it)
+		// not elegant.. but it works
+		  svg.append("rect")
+		     .attr("x",-240)
+			 .attr("y",20)
+			 .attr("width",50)
+			 .attr("height",50)
+			 .attr("fill","white");
+			
+		   
+		 debugger;
+		 var year_idx = 0;
+
+		 var year_interval = setInterval(function() {
+		     do_filter(years[year_idx]);
+			 
+			 year_idx++;
+			 
+			 if(year_idx >= years.length){
+			     clearInterval(year_interval);
+				 d3.select("#_year_txt")
+			       .transition()
+			       .duration(2000)
+			       .style("opacity",0);
+			 }
+		 }, 300);
+		 
+		 
+		 // handle on click event
+          d3.select('#opts_y')
+            .on('change', function() {
+                var new_select = d3.select(this).node().value;
+                yValue = update_y(new_select, xValue);
+            });
+		
+		  // handle on click event
+          d3.select('#opts_x')
+            .on('change', function() {
+                var new_select = d3.select(this).node().value;
+                xValue = update_x(new_select, yValue);
+            });
+      };
+      </script>
+  </head>
+<body>
+  <script type="text/javascript">
+    
+d3.csv("game_log2.csv", function(d) {
+	    d['year'] = +d['year'];
+        d['time_of_game'] = +d["time_of_game"];
+        d['pitchers_used'] = +d['pitchers_used'];
+		d['SO'] = +d['SO'];
+		d['AB'] = +d['AB'];
+		d['BB'] = +d['BB'];
+		d['hits'] = +d['hits'];
+		d['WH'] = +d['WH'];
+		d['DP'] = +d['DP'];
+		d['runs'] = +d['runs'];
+        return d;
+    }, draw);
+  </script>
+  <div id="a">
+   Y Axis:  
+  <select id = "opts_y">
+	<option value="pitchers_used" selected="selected">Pitchers Used</option>
+	<option value="SO">Strike Outs</option>
+	<option value="AB">At Bats</option> 
+	<option value="BB">Walks</option>
+	<option value="hits">Hits</option>
+	<option value="WH">Walks + Hits</option>
+	<option value="DP">Double Plays</option>
+	<option value="runs">Runs Scored</option>
+	<option value="year">Year</option>
+	<option value="time_of_game">Length of Game</option>
+  </select>
+  Pick a stat from the drop down to change what is compared to the X Axis<BR/>
+   X Axis:  
+  <select id = "opts_x">
+	<option value="time_of_game" selected="selected">Length of Game</option>
+	<option value="SO">Strike Outs</option>
+	<option value="AB">At Bats</option> 
+	<option value="BB">Walks</option>
+	<option value="hits">Hits</option>
+	<option value="WH">Walks + Hits</option>
+	<option value="DP">Double Plays</option>
+	<option value="runs">Runs Scored</option>
+	<option value="year">Year</option>
+	<option value="pitchers_used">Pitchers Used</option>
+  </select>
+  Pick a stat from the drop down to change what is compared to the Y Axis<BR/>
+  </div>
+<div id = "b" class="reflect">
+<p class = "main">
+In my exploration of the data I found that over time the use of pitching staffs since 1950 has changed dramatically, especially since early 1970.  This change in the use of pitchers has had a direct impact on the length of the average MLB Baseball game.
+</p>
+<p class = "main">
+There also seems to be a relationship between strikeouts and the length of the game, but this is counter-intuitive and the change in the use of pitching staffs could also be having an effect on strikeouts as well.
+</p>
+<p class = "main">
+<strong>Use the drop downs at the top left to play around with the data and let me know if you agree.</strong>
+</p>
+<hr>
+<p class = "sub">
+Consider the late 70's and early 80's where a relief pitcher such as Bruce Sutter for the St. Louis Cardinals would routinely throw 2 to 3 innings per appearance.  Compare that to last season of the St. Louis Cardinals where a combination of 3, 4 and sometimes 5 pitchers would close out the last 3 innings of the game.
+</p>
+<p class = "sub">
+The motivation for this came while listening to a recent baseball game on the radio earlier this year.
+
+The announcers were complaining about the number of balls being called by the umpire that night. One of the announcers made the bold statement, <strong>“If you want to shorten the length of baseball games.. CALL MORE STRIKES”.</strong> 
+I thought this was interesting and wondered if there is data that I can explore that can tell me exactly what is driving the length of games in major league baseball. I found game log information and decided to see for myself.
+</p><p class = "sub">
+This is a custom dataset pulled from <a href="http://www.retrosheet.org/">http://www.retrosheet.org/.</a>
+</p><p class = "sub">
+From their “game logs” section <a href="http://www.retrosheet.org/gamelogs/index.html">http://www.retrosheet.org/gamelogs/index.html,</a> I pulled only games from 1950 to 2014 so as to keep my observations down to under 150K. A summary of the variables found in this dataset can be found here: <a href="http://www.retrosheet.org/gamelogs/glfields.txt">http://www.retrosheet.org/gamelogs/glfields.txt.</a>
+For this analysis we’ll narrow it down to the following fields:<BR/>
+home_team,home_league,time_of_game,runs,SO,BB,AB,hits,GDP,pitchers_used,DP,year,WH,era</BR>
+</p><p class = "sub">
+It was a surprise to see the way pitching staffs have been used over time. Starting around 1974, more pitching changes were starting to be made regardless of the walks + Hits currently given up. Further research indicated that Major League Baseball rewrote it’s definition of the save statistic and modern bullpen usauge started to take shape.
+</p><p class = "sub">
+For example, starting pitchers in the post-war and deadball2 eras consistently threw more innnings than today’s starters (Example: Bob Gibson 300+ innings in 1968). Today’s starters routinely pitch 6 innings and are replaced by situational specialist from the bullpen in the 7th and 8th innings followed by the best pitcher for the 9th inning. (Consider Aroldis Chapman record holder for the fastest pitch ever thrown who pitches the 9th inning for the Reds)
+</p>
+</div>
+ 
+</body>
+</html>
