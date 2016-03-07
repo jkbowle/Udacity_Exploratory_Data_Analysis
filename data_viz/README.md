@@ -27,7 +27,7 @@
 
 ## Feedback
 > I received 3 total feedback so far on my visualization:  
-> > The first is one of the files added that I received from a colleage where I work.
+> > The first is one of the files added that I received from a colleage where I work. (Jay Herrman: RE.Feedback.for.final.viz.project.pdf)
 >
 > > The 2nd is shown here in the [forum](https://discussions.udacity.com/t/final-project-feedback-mlb-game-length/159600 "feedback")
 >
