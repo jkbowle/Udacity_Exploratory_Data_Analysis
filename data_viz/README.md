@@ -22,8 +22,13 @@
 #### index - year animation.html
 > This file has the animation built in for the years showing up from 1950 to 2014 and then allowing the reader to explore the Y axis.  At this point I started seeking formal feedback, the prior versions I did show to colleagues to make sure they understood where I was going and explain how it would work.  This version was the first "shared for critism" file, which I also published to the discussion formums.
 
+#### index - submission1.html
+> This was my first submission, from the grader feedback, I added an iterative control to the animation.  Making sure that the reader can't move forward until they have seen and read the author driven narrative before going to the reader driven narrative.
+
 #### index.html
 > Here is the final version of the file with the updatable X Axis and improved Heading.  (The heading needed to be more clear that I was intending the reader to see my "Ah Ha" moment, but allow them to explore as well.)  The changes here reflected the feedback that I got from the forums and from a Data Scientist at State Farm.  Also, while leaving feedback for peers in the forums, I noticed that most were doing some writeup with their visualization.  I decided to add that as well.
+
+> Updated the added interactive narrative and a trend line to explain the relationship of the x and y variables.  The R2 value wouldn't update if only the Y axis is updated, so I hide the value until a new X variable is selected
 
 ## Feedback
 > I received 3 total feedback so far on my visualization:  
