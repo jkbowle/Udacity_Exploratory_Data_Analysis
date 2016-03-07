@@ -11,19 +11,19 @@
 
 ### Change History
 #### viz_sketch.jpg
-> This is the initial design of the visualization that I sketched out
+> This is the initial design of the visualization that I sketched out.  I knew I wanted to show pitchers used on the Y axis and game length on the x axis, but I wasn't sure how the reader exploration would work.  In this design it would be to allow the reader to select up to 2 teams and replay the animation.  (ultimately decided against that)
 
 #### index_start.html
-> This is the first iteration of the visual which I was just trying to plot all games with pitchers used vs. game time. (this is before any rollup code was added.
+> This is the first iteration of the visual which I was just trying to plot all games with pitchers used vs. game time. (this is before any rollup code was added).  Here my main goal was to get something working that I could show as a preliminary visualization to get the basics setup (i.e. read in the file, get the scales corrected, the sizing of the visualization, etc..)
 
 #### index_pre_animation.html
-> These two are the first iteration of the visualization after adding the rollup code to summarize the games for each year.  The indexV2.html file is just a little clean up from the first
+> These two are the first iteration of the visualization after adding the rollup code to summarize the games for each year.  In this version I wanted to make sure I could correctly rollup the data for each year and display on a scatter plot.  I was pretty sure the chart would show the relationship that I expected, but this was the first time that it was verified for me.
 
 #### index - year animation.html
-> This file has the animation built in for the years showing up from 1950 to 2014 and then allowing the reader to explore the Y axis.
+> This file has the animation built in for the years showing up from 1950 to 2014 and then allowing the reader to explore the Y axis.  At this point I started seeking formal feedback, the prior versions I did show to colleagues to make sure they understood where I was going and explain how it would work.  This version was the first "shared for critism" file, which I also published to the discussion formums.
 
 #### index.html
-> Here is the final version of the file with the updatable X Axis and improved Heading.  (The heading needed to be more clear that I was intending the reader to see my "Ah Ha" moment, but allow them to explore as well.
+> Here is the final version of the file with the updatable X Axis and improved Heading.  (The heading needed to be more clear that I was intending the reader to see my "Ah Ha" moment, but allow them to explore as well.)  The changes here reflected the feedback that I got from the forums and from a Data Scientist at State Farm.  Also, while leaving feedback for peers in the forums, I noticed that most were doing some writeup with their visualization.  I decided to add that as well.
 
 ## Feedback
 > I received 3 total feedback so far on my visualization:  
