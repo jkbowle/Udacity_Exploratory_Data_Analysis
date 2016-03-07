@@ -26,5 +26,12 @@
 > Here is the final version of the file with the updatable X Axis and improved Heading.  (The heading needed to be more clear that I was intending the reader to see my "Ah Ha" moment, but allow them to explore as well.
 
 ## Feedback
+> I received 3 total feedback so far on my visualization:  
+> > The first is one of the files added that I received from a colleage where I work.
+>
+> > The 2nd is shown here in the [forum](https://discussions.udacity.com/t/final-project-feedback-mlb-game-length/159600 "feedback")
+>
+> > The 3rd was by phone from a fellow Data Scientist at State Farm Insurance on Thursday, March 3rd around 3pm CST.  His feedback was that it wasn't immediately clear what I was trying to show in the visualization and that it should very easy for the reader to see this right away.  He also stated that he wasn't convinced that it was the pitchers used in a game that led to the overall length of the game.  He mentioned that pitches thrown per game would be nice to see (which I agree and if I had the data I would have used that to size the circle radius instead of runs scored).  
+
 ## Resources
 ## Data 
