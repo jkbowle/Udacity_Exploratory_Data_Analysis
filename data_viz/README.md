@@ -40,6 +40,8 @@
 
 > Looking for some good fonts, I came across this [nice writeup](http://www.webdesigndev.com/16-gorgeous-web-safe-fonts-to-use-with-css/)
 
+>  I really struggled with the legends until I found [this](http://d3-legend.susielu.com/ "D3 Legend") and figured out the correct way to use it.
+
 > And countless examples from [Mr. Mike Bostock](https://bost.ocks.org/mike/)
 
 ## Data 
